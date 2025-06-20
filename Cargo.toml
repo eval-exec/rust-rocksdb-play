@@ -1,0 +1,7 @@
+[package]
+name = "rust-rocksdb-play"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rust-rocksdb = { version = "0.41.0", features = ["multi-threaded-cf"] }
