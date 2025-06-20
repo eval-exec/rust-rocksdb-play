@@ -1,5 +1,6 @@
 use rust_rocksdb::{
-    DBWithThreadMode, MultiThreaded, OptimisticTransactionDB, Snapshot, SnapshotWithThreadMode,
+    MultiThreaded, OptimisticTransactionDB, OptimisticTransactionOptions, SnapshotWithThreadMode,
+    TransactionDBOptions, TransactionOptions, WriteOptions,
 };
 use std::sync::{Arc, OnceLock};
 
@@ -21,18 +22,25 @@ fn get_snapshot() -> SnapshotWithThreadMode<'static, OptimisticTransactionDB<Mul
 }
 
 fn main() {
+    std::fs::remove_dir_all("/tmp/ckb_rocksdb").unwrap();
     let db: &'static Arc<OptimisticTransactionDB<MultiThreaded>> = get_txn_db();
-    db.put("hello", "world").unwrap();
+    db.put("1", "2").unwrap();
 
-    {
-        let txn = db.transaction();
-        txn.put("1", "2").unwrap();
-        txn.commit().unwrap();
-    }
+    let txn1 = db.transaction();
+    txn1.put("2", "3").unwrap();
+    txn1.commit().unwrap();
 
     let snapshot: SnapshotWithThreadMode<'static, OptimisticTransactionDB<MultiThreaded>> =
         get_snapshot();
-    let result = snapshot.get("hello").unwrap();
-    assert_eq!(result, Some("world".as_bytes().to_vec()));
-    dbg!(String::from_utf8(result.unwrap()).unwrap());
+
+    let txs2 = db.transaction();
+    txs2.put("3", "4").unwrap();
+    txs2.commit().unwrap();
+
+    assert_eq!(snapshot.get("1").unwrap(), Some("2".as_bytes().to_vec()));
+    assert_eq!(
+        db.transaction().get("2").unwrap(),
+        Some("3".as_bytes().to_vec())
+    );
+    assert_eq!(snapshot.get("3").unwrap(), None);
 }
